@@ -164,5 +164,21 @@ test("resolver tree", async () => {
   });
 });
 
+test("resolving non-object", async () => {
+  const { resolve } = rexq({
+    todoList: ["Todo", () => [1, 2, 3]],
+    Todo: (id) => {
+      return { id, title: `title${id}` };
+    },
+  });
+
+  const result = await resolve(`todoList[id,title]`);
+  expect(result.data.todoList).toEqual([
+    { id: 1, title: "title1" },
+    { id: 2, title: "title2" },
+    { id: 3, title: "title3" },
+  ]);
+});
+
 const delay = (ms, value) =>
   new Promise((resolve) => setTimeout(resolve, ms, value));

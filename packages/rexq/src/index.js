@@ -182,32 +182,48 @@ async function resolveValue(field, resolvers, options, value) {
     return value;
   }
 
+  const isObjectResolver = typeof resolvers === "function";
+  const resolvedValue = isObjectResolver
+    ? await options.call(resolvers, value, buildArgs(field, options), field)
+    : EMPTY_OBJECT;
   const result = {};
+
   await Promise.all(
     field.children.map(async (subField) => {
+      if (isObjectResolver) {
+        result[subField.alias] = resolvedValue && resolvedValue[subField.name];
+        return;
+      }
+
       const subResolver = resolvers[subField.name];
-      if (!subResolver) {
-        result[subField.alias] = value[subField.name];
-      } else {
+      if (subResolver) {
         result[subField.alias] = await resolveField(
           subField,
           { [subField.name]: subResolver },
           options,
           value
         );
+        return;
       }
+
+      result[subField.alias] = value[subField.name];
     })
   );
   return result;
 }
 
-async function resolveField(field, resolvers, options, parent) {
-  let resolver = resolvers[field.name];
-  if (!resolver) return parent;
+function buildArgs(field, options) {
   const args = {};
   field.args.forEach((arg) => {
     args[arg.name] = options.variables[arg.value];
   });
+  return args;
+}
+
+async function resolveField(field, resolvers, options, parent) {
+  let resolver = resolvers[field.name];
+  if (!resolver) return parent;
+  const args = buildArgs(field, options);
   if (typeof resolver === "string") {
     resolver = options.resolvers[resolver];
   }
