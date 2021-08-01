@@ -1,0 +1,14 @@
+{
+  "name": "rexq",
+  "main": "./dist/index.js",
+  "types": "./src/index.d.ts",
+  "description": "Extensible Query for REST API",
+  "version": "0.0.0",
+  "repository": {
+    "url": "https://github.com/linq2js/rexq.git"
+  },
+  "bugs": {
+    "url": "https://github.com/linq2js/rexq/issues"
+  },
+  "homepage": "https://github.com/linq2js/rexq#readme"
+}

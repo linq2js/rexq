@@ -1,21 +1,27 @@
-import dotenv from "dotenv";
 import express from "express";
-import samplePackageData from "my-sample-package";
+import rexq from "rexq";
 
-dotenv.config();
+// create express app
+const app = express();
 
-console.log(
-  "DATABASE_CONNECTION_STRING",
-  process.env.DATABASE_CONNECTION_STRING
+// define resolvers
+const resolvers = {
+  greeting: (_, { name }) => `Hello ${name}!`,
+};
+
+// creating query resolver
+const { resolve } = rexq(resolvers);
+
+app.get("/", (req, res) =>
+  resolve(
+    // rexq query
+    req.query.query,
+    // query variables
+    req.query
+  )
+    // resolve function returns a promise
+    // wait until the promise resolved and send the result to client in JSON format
+    .then((result) => res.json(result))
 );
 
-console.log("my-sample-package", samplePackageData);
-
-const app = express();
-const port = process.env.PORT || 3000;
-
-app.get("/", (req, res) => res.send("Hello World!!!"));
-
-app.listen(port, () => {
-  console.log(`Example app listening at http://localhost:${port}`);
-});
+app.listen(3000);
