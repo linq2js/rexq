@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.0.5](https://github.com/linq2js/rexq/compare/rexq@0.0.4...rexq@0.0.5) (2021-08-01)
+
+
+### Bug Fixes
+
+* parent argument of resolver is undefined ([95e2b1d](https://github.com/linq2js/rexq/commit/95e2b1d5c86788aaf5f8a6bc32967b76043c2530))
+
+
+
+
+
 ## [0.0.4](https://github.com/linq2js/rexq/compare/rexq@0.0.3...rexq@0.0.4) (2021-08-01)
 
 **Note:** Version bump only for package rexq
