@@ -10,5 +10,17 @@
   "bugs": {
     "url": "https://github.com/linq2js/rexq/issues"
   },
-  "homepage": "https://github.com/linq2js/rexq#readme"
+  "homepage": "https://github.com/linq2js/rexq#readme",
+  "keywords": [
+    "graphql",
+    "server",
+    "express",
+    "expressjs",
+    "rest",
+    "rest-api",
+    "module",
+    "modularize",
+    "utils",
+    "javascript"
+  ]
 }
