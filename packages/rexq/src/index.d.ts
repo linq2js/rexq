@@ -1,5 +1,6 @@
 export interface Rexq {
   resolvers: ResolverMap;
+  resolverTree: ResolverTree;
   options: Options;
   resolve<T extends {} = {}>(
     query: string,
@@ -9,6 +10,9 @@ export interface Rexq {
 
 export type Variables = { $execute?: "parallel" | "serial" } & {};
 
+export interface ResolverTree {
+  [key: string]: "unknown" | "resolver" | ResolverTree;
+}
 export interface Result<T extends {}> {
   data: T;
   errors: Error[];

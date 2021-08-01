@@ -132,5 +132,37 @@ test("modularizing supported", async () => {
   expect(result.data).toEqual({ r1: 1, r2: 2 });
 });
 
+test("resolver tree", async () => {
+  const companyModule = { company: ["Company", (_, { code }) => ({ code })] };
+  const triggersModule = {
+    Company: {
+      triggers: (company) => {
+        expect(company).not.toBeUndefined();
+        return [1, 2, 3];
+      },
+    },
+  };
+  const { resolverTree, resolve } = rexq([companyModule, triggersModule]);
+  const result = await resolve(
+    `company[ $code:code, code, triggers[ $year: year ] ]`,
+    {
+      code: "ZIM",
+      year: 2019,
+    }
+  );
+
+  expect(resolverTree).toEqual({
+    Company: {
+      triggers: "resolver",
+    },
+    company: "resolver",
+  });
+
+  expect(result.data.company).toEqual({
+    code: "ZIM",
+    triggers: [1, 2, 3],
+  });
+});
+
 const delay = (ms, value) =>
   new Promise((resolve) => setTimeout(resolve, ms, value));

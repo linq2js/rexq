@@ -186,15 +186,14 @@ async function resolveValue(field, resolvers, options, value) {
   await Promise.all(
     field.children.map(async (subField) => {
       const subResolver = resolvers[subField.name];
-      const subValue = value[subField.name];
       if (!subResolver) {
-        result[subField.alias] = subValue;
+        result[subField.alias] = value[subField.name];
       } else {
         result[subField.alias] = await resolveField(
           subField,
           { [subField.name]: subResolver },
           options,
-          subValue
+          value
         );
       }
     })
@@ -325,6 +324,7 @@ export default function rexq(
   const resolvers = Array.isArray(resolversOrModules)
     ? mergeModules(resolversOrModules, {}, registerdModules)
     : resolversOrModules;
+  let resolverTree;
   middleware = composeMiddleware(middleware);
 
   function createResolve(ns = "") {
@@ -345,5 +345,29 @@ export default function rexq(
     resolvers,
     resolve: createResolve(),
     ns: createResolve,
+    get resolverTree() {
+      if (resolverTree) return;
+
+      function buildTree(parent, nodes) {
+        Object.entries(nodes).forEach(([key, value]) => {
+          if (
+            Array.isArray(value) ||
+            typeof value === "string" ||
+            typeof value === "function"
+          ) {
+            parent[key] = "resolver";
+          } else if (value && typeof value === "object") {
+            buildTree((parent[key] = {}), value);
+          } else {
+            parent[key] = "unknown";
+          }
+        });
+      }
+
+      resolverTree = {};
+      buildTree(resolverTree, resolvers);
+
+      return resolverTree;
+    },
   };
 }
