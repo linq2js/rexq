@@ -3,7 +3,7 @@ const NOOP = () => {};
 const defaultMiddleware = (next, ...args) => next(...args);
 
 function parseQuery(query) {
-  let groupId = 1;
+  let currentGroupId = 1;
   let error, root;
 
   if (!query) query = "";
@@ -35,7 +35,7 @@ function parseQuery(query) {
   }
 
   function parseGroup(text) {
-    const id = `#${groupId++}`;
+    const id = `#${currentGroupId++}`;
     const group = {
       args: [],
       children: [],
