@@ -124,5 +124,13 @@ test("serial resolving", async () => {
   expect(order).toEqual([1, 2, 3]);
 });
 
+test("modularizing supported", async () => {
+  const module1 = { r1: () => 1 };
+  const module2 = { require: module1, r2: () => 2 };
+  const { resolve } = rexq([module2]);
+  const result = await resolve(`r1,r2`);
+  expect(result.data).toEqual({ r1: 1, r2: 2 });
+});
+
 const delay = (ms, value) =>
   new Promise((resolve) => setTimeout(resolve, ms, value));

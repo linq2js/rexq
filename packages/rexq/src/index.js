@@ -269,8 +269,8 @@ function mergeModules(modules, resolvers, registerdModules) {
   }
 
   function mergeModule({ require = [], ...props }) {
-    if (Array.isArray(require)) require = [require];
-    mergeModules(require);
+    if (!Array.isArray(require)) require = [require];
+    mergeModules(require, resolvers, registerdModules);
     mergeObject(resolvers, props);
   }
 
