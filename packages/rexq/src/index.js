@@ -429,6 +429,9 @@ export default function rexq(
     resolvers,
     resolve: createResolve(),
     ns: createResolve,
+    parse(query) {
+      return parseQuery(query, cache, cacheSize);
+    },
     get resolverTree() {
       if (resolverTree) return;
 

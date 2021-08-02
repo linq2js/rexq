@@ -2,6 +2,7 @@ export interface Rexq {
   resolvers: ResolverMap;
   resolverTree: ResolverTree;
   options: Options;
+  parse(query: string): any;
   resolve<T extends {} = {}>(
     query: string,
     variables?: Variables
