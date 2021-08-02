@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.0.6](https://github.com/linq2js/rexq/compare/rexq@0.0.5...rexq@0.0.6) (2021-08-02)
+
+
+### Bug Fixes
+
+* resolve non-object values ([0eda32a](https://github.com/linq2js/rexq/commit/0eda32ae30993c034b31a6bfac77c50cd129c143))
+
+
+
+
+
 ## [0.0.5](https://github.com/linq2js/rexq/compare/rexq@0.0.4...rexq@0.0.5) (2021-08-01)
 
 
