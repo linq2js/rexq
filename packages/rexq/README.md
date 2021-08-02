@@ -195,3 +195,144 @@ Query
 ```
   search($term) => using term variable value for term argument
 ```
+
+## Middlware
+
+### Root level middleware
+
+```js
+const resolvers = { hello: () => "Hello World" };
+const LogMiddleware = async (next, parent, args, context, info) => {
+  console.log("start");
+  // dont need to pass (parent, args, context, info) to next middleware
+  // rexq fills missing args automatically
+  // or you can call next(modifiedParent, modifiedArgs) rexq will fill the rest args (context, info)
+  const result = await next();
+  console.log("end");
+  return result;
+};
+const { resolve } = rexq(resolvers, {
+  // can pass multiple middlewares here  { middleware: [m1, m2, m3] }
+  middleware: LogMiddleware,
+});
+```
+
+### Resolver level middleware
+
+Let's say we have some middleware for security
+
+```js
+const auth =
+  (user) =>
+  // return a resolver
+  (parent, args, context, info) => {
+    if (!context.user || (user && user !== context.user))
+      throw new Error("Access Denied");
+    // return middleware that retrives next middleware as first argument
+    return (next) =>
+      // dont need to pass all arguments to next middleware
+      // rexq will do that for you
+      next();
+  };
+const resolvers = {
+  // this resolver can be called by any users
+  profile: [
+    auth(),
+    (parent, args, context) => {
+      return { name: context.user };
+    },
+  ],
+  // this resolver can be called by admin users only
+  userList: [
+    auth("admin"),
+    () => {
+      return [{ id: 1 }, { id: 2 }, { id: 3 }];
+    },
+  ],
+};
+```
+
+## Indicate query executing mode
+
+By default, rexq executes query in parallel mode, but users can force query executing in Serial mode
+
+**Query**
+
+```
+  resolver1,resolver2,resolver3
+```
+
+**Example**
+
+```js
+const resolvers = {
+  resolver1: async () => {
+    await delay(1000);
+  },
+  resolver2: async () => {
+    await delay(200);
+  },
+  resolver3: async () => {
+    await delay(500);
+  },
+};
+resolve(query, { $execute: "serial" });
+```
+
+```
+with $execute = "serial"
+=> resolver1, resolver2, resolver3
+
+without $execute = "serial" or $execute = "parallel"
+=> resolver2, resolver3, resolver1
+```
+
+## Using context for uploading/downloading file and redirecting
+
+```js
+import fileUpload from "express-fileupload";
+
+// app is an express app object
+const resolvers = {
+  downloadReport: (parent, args, { res }) => {
+    res.download(filePath, fileName);
+  },
+  // the query might be "uploadPhoto($photo)"
+  // client user must submit the photo with name=photo
+  uploadPhoto: (parent, { photo }) => {
+    // the photo now is file object
+    console.log(photo);
+  },
+  redirect: (parent, { url }, { res }) => res.redirect(url),
+};
+const { resolve } = rexq(resolvers, {
+  // context can be object or factory
+  // in this case, we retrive $res and $req from variables and assign these objects to context object
+  context: ({ $res, $req }) => ({
+    res: $res,
+    req: $req,
+    otherContextProp: null,
+  }),
+});
+app.use(fileUpload());
+app.use("/", async (req, res) => {
+  const result = await resolve(
+    req.query.query || req.body.query,
+    // passing request and response objects to context factory
+    {
+      // using query, body, files as query variables
+      ...req.query,
+      ...req.body,
+      ...req.files,
+      $res: res,
+      $req: req,
+    }
+  );
+  setTimeout(() => {
+    // do nothing if response already sent headers to client
+    // this means there is a resolver triggered file download/redirect
+    if (res.headersSent) return;
+    res.json(result);
+  });
+});
+```
