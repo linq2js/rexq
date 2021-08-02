@@ -1,4 +1,5 @@
 const EMPTY_OBJECT = {};
+const EMPTY_ARRAY = [];
 const NOOP = () => {};
 const defaultMiddleware = (next, ...args) => next(...args);
 
@@ -285,7 +286,7 @@ function mergeModules(modules, resolvers, registerdModules) {
     });
   }
 
-  function mergeModule({ require = [], ...props }) {
+  function mergeModule({ require = EMPTY_ARRAY, ...props }) {
     if (!Array.isArray(require)) require = [require];
     mergeModules(require, resolvers, registerdModules);
     mergeObject(resolvers, props);
