@@ -3,13 +3,13 @@
   "main": "./dist/index.js",
   "types": "./src/index.d.ts",
   "description": "Extensible Query for REST API",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "repository": {
     "url": "https://github.com/linq2js/rexq.git"
   },
   "devDependencies": {
-    "graphql-tag": "^2.12.5",
-    "graphql": "^15.5.1"
+    "graphql": "^15.5.1",
+    "graphql-tag": "^2.12.5"
   },
   "bugs": {
     "url": "https://github.com/linq2js/rexq/issues"
