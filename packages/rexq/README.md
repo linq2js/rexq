@@ -63,7 +63,7 @@ app.get("/", (req, res) =>
 app.listen(3000);
 ```
 
-Open this url "http://localhost:3000/?query=greeting[$name:name]&name=World" in the browser you will got the result below
+Open this url "http://localhost:3000/?query=greeting($name:name)&name=World" in the browser you will got the result below
 
 ```json
 { "data": { "greeting": "Hello World!" }, "errors": [] }
@@ -74,9 +74,9 @@ Open this url "http://localhost:3000/?query=greeting[$name:name]&name=World" in 
 In this example we try to call **greeting** resolver and pass **name** argument to the resolver
 
 ```
-greeting[ => resolver name
+greeting( => resolver name
     $name:name => resolver argument
-]
+)
 ```
 
 The name argument's value is extracted from req.query
@@ -130,10 +130,7 @@ const result = {
 **Query**
 
 ```
-    search[
-        id,
-        title
-    ]
+    search(id, title)
 ```
 
 **Example**
@@ -166,9 +163,9 @@ const result = {
 **Query**
 
 ```
-    search[
+    search(
         $term: searchTermVariable
-    ]
+    )
     $term => argument name of search resolver
     searchTermVariable => variable name
 ```

@@ -4,12 +4,18 @@ test("simple resolver", async () => {
   const { resolve } = rexq({ search: (_, { term }) => term });
   const result = await resolve(
     `
-    search [
+    search (
       $term: term
-    ]
+    )
   `,
     { term: 1 }
   );
+  expect(result.data.search).toBe(1);
+});
+
+test("shorthand argument", async () => {
+  const { resolve } = rexq({ search: (_, { term }) => term });
+  const result = await resolve(`search($term)`, { term: 1 });
   expect(result.data.search).toBe(1);
 });
 
@@ -17,9 +23,7 @@ test("using alias for resolver", async () => {
   const { resolve } = rexq({ search: (_, { term }) => term });
   const result = await resolve(
     `
-    search:result [
-      $term: term
-    ]
+    search:result($term: term)
   `,
     { term: 1 }
   );
@@ -40,7 +44,7 @@ test("the result resolver can overwrite property value of result", async () => {
     SearchResult: { count: () => 2 },
     search: ["SearchResult", () => ({ count: 1 })],
   });
-  const result = await resolve(`search[count]`);
+  const result = await resolve(`search(count)`);
   expect(result.data.search.count).toBe(2);
 });
 
@@ -77,7 +81,7 @@ test("middleware supported", async () => {
       },
     }
   );
-  const result = await resolve("test[$value: value]", { value: 1 });
+  const result = await resolve("test($value: value)", { value: 1 });
   expect(result.data.test).toBe(2);
 });
 
@@ -144,7 +148,7 @@ test("resolver tree", async () => {
   };
   const { resolverTree, resolve } = rexq([companyModule, triggersModule]);
   const result = await resolve(
-    `company[ $code:code, code, triggers[ $year: year ] ]`,
+    `company($code:code, code, triggers($year: year))`,
     {
       code: "ZIM",
       year: 2019,
@@ -172,7 +176,7 @@ test("resolving non-object", async () => {
     },
   });
 
-  const result = await resolve(`todoList[id,title]`);
+  const result = await resolve(`todoList(id,title)`);
   expect(result.data.todoList).toEqual([
     { id: 1, title: "title1" },
     { id: 2, title: "title2" },

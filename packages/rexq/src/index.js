@@ -8,7 +8,7 @@ function parseQuery(query) {
 
   if (!query) query = "";
 
-  const identifierRE = /^[^\s[\]:,]+$/;
+  const identifierRE = /^[^\s():,]+$/;
   const groups = {};
 
   function addField(parent, name, alias, props) {
@@ -23,6 +23,7 @@ function parseQuery(query) {
   }
 
   function addArg(parent, name, value) {
+    if (!value) value = name;
     if (!identifierRE.test(name)) {
       throw new Error(`Invalid argument name: "${name}"`);
     }
@@ -46,6 +47,7 @@ function parseQuery(query) {
         .trim()
         .split(":")
         .map((x) => x.trim());
+
       if (!first && !second && !third) return;
 
       // is argument
@@ -71,7 +73,7 @@ function parseQuery(query) {
   try {
     while (true) {
       let found = false;
-      query = query.replace(/\[([^[\]]*)\]/g, (_, group) => {
+      query = query.replace(/\(([^()]*)\)/g, (_, group) => {
         found = true;
         return ":" + parseGroup(group);
       });
