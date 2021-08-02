@@ -117,24 +117,32 @@ async function resolveQuery(
   query,
   variables,
   resolvers,
-  { context = EMPTY_OBJECT, middleware }
+  { context = EMPTY_OBJECT, middleware, root = null }
 ) {
-  const { root, error } = parseQuery(query);
-  if (error) {
-    return { errors: [getErrorInfo("query", error)], data: {} };
+  const { root: rootField, error: parsingError } = parseQuery(query);
+
+  if (parsingError) {
+    return { errors: [getErrorInfo("query", parsingError)], data: {} };
   }
+
   const result = {
     data: {},
     errors: [],
   };
   const options = {
     variables,
+    root:
+      "$root" in variables
+        ? variables.$root
+        : typeof root === "function"
+        ? root(variables)
+        : root,
     context: {
+      root,
       variables,
       resolvers,
       ...(typeof context === "function" ? context(variables) : context),
     },
-    root,
     resolvers,
     call,
   };
@@ -159,7 +167,7 @@ async function resolveQuery(
   }
 
   // single query allowed
-  if (variables.$single && root.children.length > 1) {
+  if (variables.$single && rootField.children.length > 1) {
     result.errors.push({ path: "query", message: "Invalid query" });
     return result;
   }
@@ -167,18 +175,18 @@ async function resolveQuery(
   // disable parallel
   if (variables.$execute === "serial") {
     // process resolver one by one
-    const queue = root.children.slice();
+    const queue = rootField.children.slice();
     while (queue.length) {
       const field = queue.shift();
-      await resolveField(field, resolvers, options, null).then(
+      await resolveField(field, resolvers, options, options.root).then(
         onSuccess(field),
         onError(field)
       );
     }
   } else {
     await Promise.all(
-      root.children.map((field) =>
-        resolveField(field, resolvers, options, null).then(
+      rootField.children.map((field) =>
+        resolveField(field, resolvers, options, options.root).then(
           onSuccess(field),
           onError(field)
         )

@@ -1,5 +1,7 @@
 # REXQ
 
+Extensible Query for REST API
+
 ## Installation
 
 **npm**

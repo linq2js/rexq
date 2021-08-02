@@ -203,5 +203,11 @@ test("single query allowed", async () => {
   expect(result.errors).toEqual([{ path: "query", message: "Invalid query" }]);
 });
 
+test("root object", async () => {
+  const { resolve } = rexq({ getRoot: (root) => root }, { root: () => 1 });
+  const result = await resolve("getRoot");
+  expect(result.data.getRoot).toBe(1);
+});
+
 const delay = (ms, value) =>
   new Promise((resolve) => setTimeout(resolve, ms, value));

@@ -16,6 +16,7 @@ export interface ResultError {
 export type Variables = {
   $execute?: "parallel" | "serial";
   $single?: boolean;
+  $root?: any;
 } & {};
 
 export interface ResolverTree {
@@ -27,7 +28,8 @@ export interface Result<T extends {}> {
 }
 
 export interface Options {
-  context?: Function | {};
+  context?: ((variables?: Variables) => any) | {};
+  root?: ((variables?: Variables) => any) | any;
 }
 
 export type ResultType = string;
