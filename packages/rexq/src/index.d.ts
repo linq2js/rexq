@@ -8,6 +8,11 @@ export interface Rexq {
   ): Promise<Result<T>>;
 }
 
+export interface ResultError {
+  path: string;
+  message: string;
+}
+
 export type Variables = { $execute?: "parallel" | "serial" } & {};
 
 export interface ResolverTree {
@@ -15,7 +20,7 @@ export interface ResolverTree {
 }
 export interface Result<T extends {}> {
   data: T;
-  errors: Error[];
+  errors: ResultError[];
 }
 
 export interface Options {

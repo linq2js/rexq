@@ -14,6 +14,21 @@ npm i rexq --save
 yarn add rexq
 ```
 
+## Features
+
+- No schema/typeDefs required
+- Lightweight
+- Easy to use and setup
+- Simple query language
+- Resolver middleware supported (apply for root/resolver level)
+- Modularize supported
+- No dependencies
+- Compatible with many REST libs/frameworks
+- File download/upload supported
+- HTTP Redirect supported
+- Can handle query and mutate data in one request
+- Parallel/Serial executing supported
+
 ## Getting started
 
 Building rexq app using express
