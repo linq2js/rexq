@@ -187,3 +187,11 @@ const result = resolve(query, variables);
 }
 */
 ```
+
+### Argument shorthand
+
+Query
+
+```
+  search($term) => using term variable value for term argument
+```
