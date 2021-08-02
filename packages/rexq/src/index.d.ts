@@ -13,7 +13,10 @@ export interface ResultError {
   message: string;
 }
 
-export type Variables = { $execute?: "parallel" | "serial" } & {};
+export type Variables = {
+  $execute?: "parallel" | "serial";
+  $single?: boolean;
+} & {};
 
 export interface ResolverTree {
   [key: string]: "unknown" | "resolver" | ResolverTree;

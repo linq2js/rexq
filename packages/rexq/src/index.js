@@ -7,12 +7,27 @@ function parseQuery(query) {
   let currentGroupId = 1;
   let error, root;
 
-  if (!query) query = "";
+  if (query) {
+    // trimming and removing comments
+    query = query.trim().replace(/#.*/g, "");
+  }
+
+  if (!query) {
+    return {
+      root: { args: EMPTY_ARRAY, children: EMPTY_ARRAY },
+      error: null,
+    };
+  }
 
   const identifierRE = /^[^\s():,]+$/;
   const groups = {};
 
   function addField(parent, name, alias, props) {
+    if (name === "*") {
+      parent.hasWildcard = true;
+      return;
+    }
+
     if (!identifierRE.test(name)) {
       throw new Error(`Invalid field name: "${name}"`);
     }
@@ -143,6 +158,12 @@ async function resolveQuery(
     };
   }
 
+  // single query allowed
+  if (variables.$single && root.children.length > 1) {
+    result.errors.push({ path: "query", message: "Invalid query" });
+    return result;
+  }
+
   // disable parallel
   if (variables.$execute === "serial") {
     // process resolver one by one
@@ -169,6 +190,8 @@ async function resolveQuery(
 }
 
 async function resolveValue(field, resolvers, options, value) {
+  if (field.hasWildcard) return value;
+
   // get resolved value if it is promise
   if (value && typeof value.then === "function") {
     value = await value;

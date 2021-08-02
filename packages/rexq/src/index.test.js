@@ -184,5 +184,24 @@ test("resolving non-object", async () => {
   ]);
 });
 
+test("wildcard", async () => {
+  const { resolve } = rexq({
+    num: () => 1,
+    Object: { c: () => 3 },
+    obj: ["Object", () => ({ a: 1, b: 2 })],
+  });
+  const result = await resolve("num(*),obj(*)");
+  expect(result.data).toEqual({
+    num: 1,
+    obj: { a: 1, b: 2, c: undefined },
+  });
+});
+
+test("single query allowed", async () => {
+  const { resolve } = rexq({});
+  const result = await resolve("q1, q2", { $single: true });
+  expect(result.errors).toEqual([{ path: "query", message: "Invalid query" }]);
+});
+
 const delay = (ms, value) =>
   new Promise((resolve) => setTimeout(resolve, ms, value));
