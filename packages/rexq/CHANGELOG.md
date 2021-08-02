@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.1.0](https://github.com/linq2js/rexq/compare/rexq@0.0.6...rexq@0.1.0) (2021-08-02)
+
+
+### Features
+
+* shorthand argument ([ec4558f](https://github.com/linq2js/rexq/commit/ec4558f59dfa1d578d0b394c9b0d99232fe0cd28))
+
+
+### BREAKING CHANGES
+
+* change [] syntax to ()
+
+
+
+
+
 ## [0.0.6](https://github.com/linq2js/rexq/compare/rexq@0.0.5...rexq@0.0.6) (2021-08-02)
 
 
