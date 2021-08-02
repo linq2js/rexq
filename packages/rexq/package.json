@@ -7,6 +7,10 @@
   "repository": {
     "url": "https://github.com/linq2js/rexq.git"
   },
+  "devDependencies": {
+    "graphql-tag": "^2.12.5",
+    "graphql": "^15.5.1"
+  },
   "bugs": {
     "url": "https://github.com/linq2js/rexq/issues"
   },

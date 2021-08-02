@@ -221,36 +221,55 @@ const { resolve } = rexq(resolvers, {
 
 ### Resolver level middleware
 
-Let's say we have some middleware for security
+Let's say we have some middlewares for security and validation
 
 ```js
+import * as yup from "yup";
+
 const auth =
   (user) =>
   // return a resolver
-  (parent, args, context, info) => {
-    if (!context.user || (user && user !== context.user))
+  (parent, args, context, info) =>
+  // if the resolver returns a function, that function will retrive next resolver as first argument
+  (next) => {
+    if (!context.user || (user !== "*" && user !== context.user)) {
       throw new Error("Access Denied");
-    // return middleware that retrives next middleware as first argument
-    return (next) =>
-      // dont need to pass all arguments to next middleware
-      // rexq will do that for you
-      next();
+    }
+    // dont need to pass all arguments to next middleware
+    // rexq will do that for you
+    return next();
   };
+
+const validate = (schema) => (parent, args) => (next) => {
+  const transformedArgs = await schema.isValid(args);
+  return next(parent, transformedArgs);
+};
+
+const searchResolver = (parent, { term }) => {
+  return `Search result of ${term}`;
+};
+
+const profileResolver = (parent, args, context) => {
+  return { name: context.user };
+};
+
+const userListResolver = () => {
+  return [{ id: 1 }, { id: 2 }, { id: 3 }];
+};
+
 const resolvers = {
+  search: [
+    validate(
+      yup.object().shape({
+        term: yup.string().required(),
+      })
+    ),
+    searchResolver,
+  ],
   // this resolver can be called by any users
-  profile: [
-    auth(),
-    (parent, args, context) => {
-      return { name: context.user };
-    },
-  ],
+  profile: [auth("*"), profileResolver],
   // this resolver can be called by admin users only
-  userList: [
-    auth("admin"),
-    () => {
-      return [{ id: 1 }, { id: 2 }, { id: 3 }];
-    },
-  ],
+  userList: [auth("admin"), userListResolver],
 };
 ```
 
@@ -337,4 +356,53 @@ app.use("/", async (req, res) => {
     res.json(result);
   });
 });
+```
+
+## Modularize
+
+```js
+// modules/user/index.js
+module.exports = {
+  me: [
+    // specific result type is User
+    "User",
+    () => ({ name: "my user name" }),
+  ],
+  // user type resolver
+  User: {
+    photo: () => {},
+  },
+  userList: () => {},
+};
+
+// modules/post/index.js
+module.exports = {
+  searchPost: () => {},
+  // user type resolver
+  User: {
+    // return posts of current user
+    posts: (user) => [1, 2, 3],
+  },
+};
+
+// index.js
+import user from "./modules/user";
+import post from "./modules/user";
+
+// create rexq with user module only
+rexq([user]);
+resolve("me(name,posts)"); // { data: { name: "my user name", post: null } }
+
+// create rexq with user and post modules
+rexq([user, post]);
+resolve("me(name,posts)"); // { data: { name: "my user name", post: [1, 2, 3] } }
+
+// if the post module specified its required modules
+module.exports = {
+  // require accepts module or array of module
+  require: user,
+  // resolvers...
+};
+// we use post module only, user module will import later automatically
+rexq([post]);
 ```

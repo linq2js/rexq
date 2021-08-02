@@ -2,22 +2,25 @@ const EMPTY_OBJECT = {};
 const EMPTY_ARRAY = [];
 const NOOP = () => {};
 const defaultMiddleware = (next, ...args) => next(...args);
+const emptyParseResult = {
+  root: { args: EMPTY_ARRAY, children: EMPTY_ARRAY },
+  error: null,
+};
 
-function parseQuery(query) {
+export function parseQuery(query, cache, cacheSize = Number.MAX_VALUE) {
   let currentGroupId = 1;
   let error, root;
+  const cacheKey = query;
 
   if (query) {
+    const cachedQuery = cache.get(cacheKey);
+    if (cachedQuery) return cachedQuery;
+
     // trimming and removing comments
-    query = query.trim().replace(/#.*/g, "");
+    query = query.trim().replace(/#.*/g, "").replace(/\s+/g, "");
   }
 
-  if (!query) {
-    return {
-      root: { args: EMPTY_ARRAY, children: EMPTY_ARRAY },
-      error: null,
-    };
-  }
+  if (!query) return emptyParseResult;
 
   const identifierRE = /^[^\s():,]+$/;
   const groups = {};
@@ -100,10 +103,16 @@ function parseQuery(query) {
     error = e;
   }
 
-  return {
+  const result = {
     root,
     error,
   };
+
+  if (cache.size < cacheSize) {
+    cache.set(cacheKey, result);
+  }
+
+  return result;
 }
 
 function getErrorInfo(path, error) {
@@ -117,9 +126,16 @@ async function resolveQuery(
   query,
   variables,
   resolvers,
-  { context = EMPTY_OBJECT, middleware, root = null }
+  cache,
+  cacheSize,
+  middleware,
+  { context = EMPTY_OBJECT, root = null }
 ) {
-  const { root: rootField, error: parsingError } = parseQuery(query);
+  const { root: rootField, error: parsingError } = parseQuery(
+    query,
+    cache,
+    cacheSize
+  );
 
   if (parsingError) {
     return { errors: [getErrorInfo("query", parsingError)], data: {} };
@@ -141,16 +157,50 @@ async function resolveQuery(
       root,
       variables,
       resolvers,
+      execute,
       ...(typeof context === "function" ? context(variables) : context),
     },
+    findResolver,
+    resolveGroup,
     resolvers,
     call,
   };
 
+  function resolveGroup(group, field, parent, args) {
+    const resultType = group[0];
+    if (!group.__composedResolver) {
+      group.__composedResolver = composeResolvers(
+        typeof resultType === "function" ? group : group.slice(1)
+      );
+    }
+    const result = call(group.__composedResolver, parent, args, field);
+    if (typeof resultType === "function") {
+      return result;
+    }
+    const resultResolver = findResolver(resultType);
+    if (!resultResolver) return result;
+    return resolveValue(field, resultResolver, options, result);
+  }
+
+  function findResolver(path) {
+    return path
+      .split(".")
+      .reduce((resolvers, name) => resolvers && resolvers[name], resolvers);
+  }
+
+  function execute(resolver, parent, args, info) {
+    if (Array.isArray(resolver)) {
+      return resolveGroup(resolver, info.$$field, parent, args);
+    }
+    if (typeof resolver === "string") {
+      resolver = findResolver(resolver);
+    }
+    return middleware(resolver, parent, args, options.context, info);
+  }
+
   function call(resolver, parent, args, field) {
-    return middleware(resolver, parent, args, options.context, {
-      fields: field.children,
-    });
+    const info = { fields: field.children, $$field: field };
+    return execute(resolver, parent, args, info);
   }
 
   function onSuccess(field) {
@@ -271,29 +321,7 @@ async function resolveField(field, resolvers, options, parent) {
   }
   // [resultType, ...middlewares, resolver]
   if (Array.isArray(resolver)) {
-    const resultType = resolver[0];
-    if (!resolver.__composedResolver) {
-      resolver.__composedResolver = composeResolvers(
-        typeof resultType === "function" ? resolver : resolver.slice(1)
-      );
-    }
-    const result = options.call(
-      resolver.__composedResolver,
-      parent,
-      args,
-      field
-    );
-    if (typeof resultType === "function") {
-      return result;
-    }
-    const resultResolver = resultType
-      .split(".")
-      .reduce(
-        (resolvers, type) => resolvers && resolvers[type],
-        options.resolvers
-      );
-    if (!resultResolver) return result;
-    return resolveValue(field, resultResolver, options, result);
+    return options.resolveGroup(resolver, field, parent, args);
   }
 
   return resolveValue(field, resolver, options, parent);
@@ -367,8 +395,9 @@ function composeMiddleware(middleware) {
 
 export default function rexq(
   resolversOrModules = EMPTY_OBJECT,
-  { middleware, ...options } = EMPTY_OBJECT
+  { middleware, cacheSize, ...options } = EMPTY_OBJECT
 ) {
+  const cache = new Map();
   const registerdModules = new Set();
   const resolveCache = new Map();
   const resolvers = Array.isArray(resolversOrModules)
@@ -381,10 +410,15 @@ export default function rexq(
     let resolve = resolveCache.get(ns);
     if (!resolve) {
       resolve = (query = "", variables = EMPTY_OBJECT) =>
-        resolveQuery(query, variables, ns ? resolvers[ns] : resolvers, {
-          ...options,
+        resolveQuery(
+          query,
+          variables,
+          ns ? resolvers[ns] : resolvers,
+          cache,
+          cacheSize,
           middleware,
-        });
+          options
+        );
       resolveCache.set(ns, resolve);
     }
     return resolve;

@@ -8,6 +8,13 @@ export interface Rexq {
   ): Promise<Result<T>>;
 }
 
+export type Context<TExtra> = {
+  root: any;
+  variables: Variables;
+  resolvers: ResolverMap;
+  execute<T = any>(resolver: any, parent?: any, args?: any, info?: any): T;
+} & TExtra;
+
 export interface ResultError {
   path: string;
   message: string;

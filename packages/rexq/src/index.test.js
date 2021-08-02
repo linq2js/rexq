@@ -71,7 +71,7 @@ test("calling resolver order", async () => {
   expect(orders).toEqual([1, 2, 3]);
 });
 
-test("middleware supported", async () => {
+test("root middleware", async () => {
   const { resolve } = rexq(
     { test: (_, { value }) => value },
     {
@@ -81,8 +81,32 @@ test("middleware supported", async () => {
       },
     }
   );
-  const result = await resolve("test($value: value)", { value: 1 });
+  const result = await resolve("test($value)", { value: 1 });
   expect(result.data.test).toBe(2);
+});
+
+test("resolver middleware", async () => {
+  const { resolve } = rexq({
+    test: [
+      (_, { value }) =>
+        (next) => {
+          if (!value) throw new Error("value required");
+          return next();
+        },
+      (_, { value }) => value,
+    ],
+  });
+  const result1 = await resolve("test($value)", { value: 1 });
+  expect(result1.data.test).toBe(1);
+
+  const result2 = await resolve("test($value)", { value: 0 });
+  expect(result2.data.test).toBeNull();
+  expect(result2.errors).toEqual([
+    {
+      path: "test",
+      message: "value required",
+    },
+  ]);
 });
 
 test("multiple resolver errors supported", async () => {
