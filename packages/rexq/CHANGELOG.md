@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.3.0](https://github.com/linq2js/rexq/compare/rexq@0.2.3...rexq@0.3.0) (2021-08-03)
+
+
+### Features
+
+* support links ([60704ea](https://github.com/linq2js/rexq/commit/60704ea7610db9334972ac8622673707bae57016))
+
+
+
+
+
 ## [0.2.3](https://github.com/linq2js/rexq/compare/rexq@0.2.2...rexq@0.2.3) (2021-08-02)
 
 **Note:** Version bump only for package rexq
