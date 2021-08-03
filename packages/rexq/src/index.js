@@ -119,16 +119,18 @@ function getErrorInfo(path, error) {
   return {
     path,
     message: typeof error === "string" ? fieldError : error.message,
+    stack: error.stack,
   };
 }
 
 async function resolveQuery(
-  query,
-  variables,
+  query = "",
+  variables = EMPTY_OBJECT,
   resolvers,
   cache,
   cacheSize,
   middleware,
+  fallback,
   { context = EMPTY_OBJECT, root = null }
 ) {
   const { root: rootField, error: parsingError } = parseQuery(
@@ -141,10 +143,13 @@ async function resolveQuery(
     return { errors: [getErrorInfo("query", parsingError)], data: {} };
   }
 
+  const fallbackFields = [];
+
   const result = {
     data: {},
     errors: [],
   };
+
   const options = {
     variables,
     root:
@@ -154,6 +159,7 @@ async function resolveQuery(
         ? root(variables)
         : root,
     context: {
+      links: new Map(),
       root,
       variables,
       resolvers,
@@ -228,23 +234,73 @@ async function resolveQuery(
     const queue = rootField.children.slice();
     while (queue.length) {
       const field = queue.shift();
+      if (fallback && !(field.name in resolvers)) {
+        fallbackFields.push(field);
+        continue;
+      }
       await resolveField(field, resolvers, options, options.root).then(
         onSuccess(field),
         onError(field)
       );
     }
+    await handleFallabck(fallback, fallbackFields, variables, result);
   } else {
-    await Promise.all(
-      rootField.children.map((field) =>
-        resolveField(field, resolvers, options, options.root).then(
-          onSuccess(field),
-          onError(field)
-        )
-      )
+    const allResolvingPromises = rootField.children.map((field) => {
+      if (fallback && !(field.name in resolvers)) {
+        fallbackFields.push(field);
+        return;
+      }
+      return resolveField(field, resolvers, options, options.root).then(
+        onSuccess(field),
+        onError(field)
+      );
+    });
+    allResolvingPromises.push(
+      handleFallabck(fallback, fallbackFields, variables, result)
     );
+    await Promise.all(allResolvingPromises);
   }
 
   return result;
+}
+
+async function handleFallabck(fallback, fallbackFields, variables, result) {
+  if (!fallback || !fallbackFields.length) return;
+  const fallbackInfo = buildQuery(fallbackFields, variables);
+  if (typeof fallback !== "function") {
+    result.fallback = fallbackInfo;
+    return;
+  }
+  const fallbackResult = await fallback(fallbackInfo);
+  if (!fallbackResult) return result;
+  const { data, errors } = fallbackResult;
+  Object.keys(data).forEach((key) => (result.data[key] = data[key]));
+  errors.forEach((error) => result.errors.push(error));
+}
+
+export function buildQuery(inputFields, inputVariables) {
+  const variables = {};
+
+  function stringify(field) {
+    let selectors = field.name;
+    if (field.alias !== field.name) {
+      selectors += `:${field.alias}`;
+    }
+    if (field.args.length || field.children.length) {
+      const subSelectors = field.args.map((arg) => {
+        const variableId = generateIdentifier();
+        variables[variableId] = inputVariables[arg.value];
+        return `$${arg.name}:${variableId}`;
+      });
+      subSelectors.push(...field.children.map(stringify));
+      selectors += `(${subSelectors.join(",")})`;
+    }
+    return selectors;
+  }
+  return {
+    query: inputFields.map(stringify).join(","),
+    variables,
+  };
 }
 
 async function resolveValue(field, resolvers, options, value) {
@@ -395,7 +451,14 @@ function composeMiddleware(middleware) {
 
 export default function rexq(
   resolversOrModules = EMPTY_OBJECT,
-  { middleware, cacheSize, ...options } = EMPTY_OBJECT
+  {
+    middleware,
+    cacheSize,
+    fallback,
+    links = [],
+    linkLatency = 100,
+    ...options
+  } = EMPTY_OBJECT
 ) {
   const cache = new Map();
   const registerdModules = new Set();
@@ -406,19 +469,37 @@ export default function rexq(
   let resolverTree;
   middleware = composeMiddleware(middleware);
 
+  if (!Array.isArray(links)) links = [links];
+
+  if (links.length) {
+    mergeModules(
+      links.map((link) =>
+        createLinkedModule(link, linkLatency, cache, cacheSize)
+      ),
+      resolvers,
+      registerdModules
+    );
+  }
+
   function createResolve(ns = "") {
     let resolve = resolveCache.get(ns);
     if (!resolve) {
-      resolve = (query = "", variables = EMPTY_OBJECT) =>
-        resolveQuery(
+      resolve = (query = "", variables) => {
+        if (query && typeof query === "object") {
+          [query, variables] = [query.query, query.variables];
+        }
+
+        return resolveQuery(
           query,
           variables,
           ns ? resolvers[ns] : resolvers,
           cache,
           cacheSize,
           middleware,
+          fallback,
           options
         );
+      };
       resolveCache.set(ns, resolve);
     }
     return resolve;
@@ -431,6 +512,9 @@ export default function rexq(
     ns: createResolve,
     parse(query) {
       return parseQuery(query, cache, cacheSize);
+    },
+    build(fields, variables = EMPTY_OBJECT) {
+      return buildQuery(fields, variables);
     },
     get resolverTree() {
       if (resolverTree) return;
@@ -457,4 +541,127 @@ export default function rexq(
       return resolverTree;
     },
   };
+}
+
+function generateIdentifier() {
+  return "i" + Math.random().toString(36).substr(2, 5);
+}
+
+function createLinkedModule(link, defaultLatency, cache, cacheSize) {
+  const { execute, resolvers = EMPTY_OBJECT, latency = defaultLatency } = link;
+
+  if (!execute) throw new Error("link.execute required");
+
+  function replaceResolvers(resolvers) {
+    const result = {};
+    Object.entries(resolvers).forEach(([key, value]) => {
+      if (typeof value === "function" || typeof value === "string") {
+        let queryBuilder;
+        if (typeof value === "function") {
+          queryBuilder = value;
+        } else {
+          queryBuilder = createLinkQueryBuilder(value);
+        }
+
+        result[key] = async (parent, args, context, info) => {
+          const { query = "", variables = {} } = await queryBuilder(
+            parent,
+            args,
+            context,
+            info
+          );
+          if (!query) return null;
+          let placeholderFound = false;
+          const finalQuery = query
+            // replace placeholder
+            .replace(/\?/g, () => {
+              if (placeholderFound)
+                throw new Error(
+                  "Link query cannot contain more than one placeholder"
+                );
+              if (!info.fields.length) return "";
+              placeholderFound = true;
+              const childResult = buildQuery(info.fields, context.variables);
+              Object.assign(variables, childResult.variables);
+              return childResult.query;
+            });
+
+          const { root, error } = parseQuery(finalQuery, cache, cacheSize);
+
+          if (error) throw error;
+          if (root.children.length > 1) {
+            throw new Error(
+              `Link query must have one selector but got ${root.children.length}`
+            );
+          }
+
+          return enqueue(root.children[0], variables, context);
+        };
+        return;
+      }
+
+      result[key] = replaceResolvers(value);
+    });
+    return result;
+  }
+
+  function enqueue(field, variables, context) {
+    let linkContext = context.links.get(link);
+    if (!linkContext) {
+      linkContext = {
+        queries: [],
+        timer: null,
+      };
+      linkContext.promise = new Promise((resolve, reject) => {
+        linkContext.resolve = resolve;
+        linkContext.reject = reject;
+      });
+      context.links.set(link, linkContext);
+    }
+
+    clearTimeout(linkContext.timer);
+    const alias = "result" + linkContext.queries.length;
+    // add field alias
+    linkContext.queries.push({
+      fields: [{ ...field, alias }],
+      variables,
+    });
+
+    linkContext.timer = setTimeout(async () => {
+      // remove link context from link list
+
+      context.links.delete(link);
+      const combinedQueries = [];
+      const combinedVariables = {};
+
+      linkContext.queries.forEach(({ fields, variables }) => {
+        const result = buildQuery(fields, variables);
+        combinedQueries.push(result.query);
+        Object.assign(combinedVariables, result.variables);
+      });
+      try {
+        const result = await execute(
+          combinedQueries.join(","),
+          combinedVariables
+        );
+        linkContext.resolve(result);
+      } catch (e) {
+        linkContext.reject(e);
+      }
+    }, latency);
+
+    return linkContext.promise.then((result) => {
+      const error = result.errors.find((e) => e.path === alias);
+      if (error) return Promise.reject(error);
+      return result.data[alias];
+    });
+  }
+
+  const module = replaceResolvers(resolvers);
+
+  return module;
+}
+
+function createLinkQueryBuilder(query) {
+  return (parent, args) => ({ query, variables: args });
 }

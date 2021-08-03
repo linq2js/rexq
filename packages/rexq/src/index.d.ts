@@ -2,11 +2,21 @@ export interface Rexq {
   resolvers: ResolverMap;
   resolverTree: ResolverTree;
   options: Options;
-  parse(query: string): any;
+  parse(query: string): ParseResult;
+  build(fields: FieldInfo[], variables?: Variables): QueryInfo;
   resolve<T extends {} = {}>(
     query: string,
     variables?: Variables
   ): Promise<Result<T>>;
+  resolve<T extends {} = {}>(input: {
+    query: string;
+    variables?: Variables;
+  }): Promise<Result<T>>;
+}
+
+export interface ParseResult {
+  root: FieldInfo;
+  error: Error;
 }
 
 export type Context<TExtra> = {
@@ -38,6 +48,48 @@ export interface Result<T extends {}> {
 export interface Options {
   context?: ((variables?: Variables) => any) | {};
   root?: ((variables?: Variables) => any) | any;
+  fallback?: boolean | ((info: { query: string; variables: Variables }) => any);
+  linkLatency?: number;
+  links?: Link[];
+}
+
+export interface Link {
+  latency?: number;
+  execute(query: string, variables?: Variables): any;
+  resolvers: ResolverMap;
+}
+
+export interface LinkResolverMap {
+  [key: string]:
+    | string
+    | ((
+        parent?: any,
+        args?: {},
+        context?: Context,
+        info?: Info
+      ) => QueryInfo | Promise<QueryInfo>)
+    | LinkResolverMap;
+}
+
+export interface QueryInfo {
+  query: string;
+  variables?: Variables;
+}
+
+export interface Info {
+  fields: FieldInfo[];
+}
+
+export interface FieldInfo {
+  name: string;
+  alias: string;
+  args: ArgInfo[];
+  children: FieldInfo[];
+}
+
+export interface ArgInfo {
+  name: string;
+  value: string;
 }
 
 export type ResultType = string;
