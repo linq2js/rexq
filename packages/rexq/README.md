@@ -406,3 +406,72 @@ module.exports = {
 // we use post module only, user module will import later automatically
 rexq([post]);
 ```
+
+## Using DataLoader to optimize object loading
+
+```js
+import express from "express";
+import rexq from "rexq";
+import DataLoader from "dataloader";
+
+// create express app
+const app = express();
+
+const resolvers = {
+  userList: (root, { top }, context) =>
+    new Array(parseInt(top, 10)).fill().map((_, index) =>
+      // call data loader
+      context.users.load(index)
+    ),
+};
+
+const { resolve } = rexq(resolvers, {
+  context: {
+    users: new DataLoader(async (ids) => {
+      console.log("loading... " + ids.join(","));
+      return ids.map((id) => ({ id, name: "Name of " + id }));
+    }),
+  },
+});
+
+app.get("/", async (req, res) => {
+  const result = await resolve(req.query.query, req.query);
+  res.json(result);
+});
+
+app.listen(3000);
+```
+
+If you open the URL below in the browser
+
+```
+http://localhost:3000?query=userList:top3( $top:top3, id, name ), userList:top5( $top:top5, id, name )&top3=3&top5=5
+```
+
+You will get the result look like this
+
+```json
+{
+  "data": {
+    "top3": [
+      { "id": 0, "name": "Name of 0" },
+      { "id": 1, "name": "Name of 1" },
+      { "id": 2, "name": "Name of 2" }
+    ],
+    "top5": [
+      { "id": 0, "name": "Name of 0" },
+      { "id": 1, "name": "Name of 1" },
+      { "id": 2, "name": "Name of 2" },
+      { "id": 3, "name": "Name of 3" },
+      { "id": 4, "name": "Name of 4" }
+    ]
+  },
+  "errors": []
+}
+```
+
+And the output console looks like this
+
+```
+loading... 0,1,2,3,4 # just one request to load all data
+```

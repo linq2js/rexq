@@ -7,7 +7,7 @@ const emptyParseResult = {
   error: null,
 };
 
-export function parseQuery(query, cache, cacheSize = Number.MAX_VALUE) {
+export function parseQuery(query, cache, cacheSize) {
   let currentGroupId = 1;
   let error, root;
   const cacheKey = query;
@@ -108,7 +108,7 @@ export function parseQuery(query, cache, cacheSize = Number.MAX_VALUE) {
     error,
   };
 
-  if (cache.size < cacheSize) {
+  if (!cacheSize || cache.size < cacheSize) {
     cache.set(cacheKey, result);
   }
 
@@ -492,7 +492,7 @@ export default function rexq(
         return resolveQuery(
           query,
           variables,
-          ns ? resolvers[ns] : resolvers,
+          ns ? resolvers[ns] || EMPTY_OBJECT : resolvers,
           cache,
           cacheSize,
           middleware,

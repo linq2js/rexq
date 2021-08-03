@@ -1,27 +1,30 @@
 import express from "express";
 import rexq from "rexq";
+import DataLoader from "dataloader";
 
 // create express app
 const app = express();
 
-// define resolvers
 const resolvers = {
-  greeting: (_, { name }) => `Hello ${name}!`,
+  userList: (root, { top }, context) =>
+    new Array(parseInt(top, 10)).fill().map((_, index) =>
+      // call data loader
+      context.users.load(index)
+    ),
 };
 
-// creating query resolver
-const { resolve } = rexq(resolvers);
+const { resolve } = rexq(resolvers, {
+  context: {
+    users: new DataLoader(async (ids) => {
+      console.log("loading " + ids.join(","));
+      return ids.map((id) => ({ id, name: "Name of " + id }));
+    }),
+  },
+});
 
-app.get("/", (req, res) =>
-  resolve(
-    // rexq query
-    req.query.query,
-    // query variables
-    req.query
-  )
-    // resolve function returns a promise
-    // wait until the promise resolved and send the result to client in JSON format
-    .then((result) => res.json(result))
-);
+app.get("/", async (req, res) => {
+  const result = await resolve(req.query.query, req.query);
+  res.json(result);
+});
 
 app.listen(3000);
