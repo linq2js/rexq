@@ -5,12 +5,12 @@
   "scripts": {
     "start": "nodemon --exec babel-node ./src/index.js --config-file ../../babel.config.js"
   },
-  "version": "0.0.14",
+  "version": "0.0.15",
   "private": true,
   "dependencies": {
     "dataloader": "^2.0.0",
     "dotenv": "^10.0.0",
     "express": "^4.17.1",
-    "rexq": "^0.3.1"
+    "rexq": "^0.3.2"
   }
 }

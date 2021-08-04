@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.0.15](https://github.com/linq2js/rexq/compare/server@0.0.14...server@0.0.15) (2021-08-04)
+
+
+### Bug Fixes
+
+* resolveValue works incorrectly ([eb5ee7f](https://github.com/linq2js/rexq/commit/eb5ee7f6ec6a6d55242d95db2e99c25d8d94af5b))
+
+
+
+
+
 ## [0.0.14](https://github.com/linq2js/rexq/compare/server@0.0.13...server@0.0.14) (2021-08-03)
 
 **Note:** Version bump only for package server
