@@ -379,7 +379,6 @@ test("resolve array", async () => {
       )
     )`
   );
-  console.log(result.data.triggers);
 });
 
 const delay = (ms, value) =>
