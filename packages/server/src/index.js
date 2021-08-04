@@ -1,6 +1,11 @@
 import express from "express";
 import rexq from "rexq";
 import DataLoader from "dataloader";
+import shared from "shared/main";
+import "./subModule";
+import "./test/abc";
+
+console.log(shared);
 
 // create express app
 const app = express();

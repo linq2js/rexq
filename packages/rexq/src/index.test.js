@@ -1,4 +1,5 @@
 import rexq from "./index";
+import testData from "./testData";
 
 test("simple resolver", async () => {
   const { resolve } = rexq({ search: (_, { term }) => term });
@@ -340,6 +341,45 @@ test("links with placeholder", async () => {
       child2: "def",
     },
   });
+});
+
+test("export selector value to variable", async () => {
+  const { resolve } = rexq({
+    a: () => delay(10, 1),
+    b: () => delay(10, 2),
+    sum: (_, { a, b }) => {
+      return a + b;
+    },
+  });
+  const result = await resolve(`a:$a, b:$b, sum($a, $b)`, {
+    $execute: "serial",
+  });
+  expect(result.data).toEqual({
+    sum: 3,
+  });
+});
+
+test("resolve array", async () => {
+  const { resolve } = rexq({
+    triggers: () => {
+      return testData;
+    },
+  });
+  const result = await resolve(
+    `triggers(
+      $year,
+      earnings,
+      marketValue,
+      fairPricedValue,
+      overPricedValue,
+      greatlyOverPricedValue,
+      items(
+        value,
+        date
+      )
+    )`
+  );
+  console.log(result.data.triggers);
 });
 
 const delay = (ms, value) =>

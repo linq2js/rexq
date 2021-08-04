@@ -31,13 +31,20 @@ export function parseQuery(query, cache, cacheSize) {
       return;
     }
 
-    if (!identifierRE.test(name)) {
+    if (!identifierRE.test(name) || name[0] === "_") {
       throw new Error(`Invalid field name: "${name}"`);
     }
     if (alias && !identifierRE.test(alias)) {
       throw new Error(`Invalid field alias: "${alias}"`);
     }
-    const field = { args: [], children: [], ...props, name, alias };
+    const field = {
+      args: [],
+      children: [],
+      ...props,
+      name,
+      alias: alias[0] === "$" ? name : alias,
+      out: alias[0] === "$" ? alias.substr(1) : null,
+    };
     parent.children.push(field);
   }
 
@@ -143,6 +150,9 @@ async function resolveQuery(
     return { errors: [getErrorInfo("query", parsingError)], data: {} };
   }
 
+  // clone variables for mutating later
+  variables = { ...variables };
+
   const fallbackFields = [];
 
   const result = {
@@ -211,6 +221,7 @@ async function resolveQuery(
 
   function onSuccess(field) {
     return (fieldResult) => {
+      if (field.out) return;
       result.data[field.alias] = fieldResult;
     };
   }
@@ -258,6 +269,7 @@ async function resolveQuery(
     allResolvingPromises.push(
       handleFallabck(fallback, fallbackFields, variables, result)
     );
+
     await Promise.all(allResolvingPromises);
   }
 
@@ -306,6 +318,10 @@ export function buildQuery(inputFields, inputVariables) {
 async function resolveValue(field, resolvers, options, value) {
   if (field.hasWildcard) return value;
 
+  if (field.out) {
+    return await updateVariable(options.variables, field.out, value);
+  }
+
   // get resolved value if it is promise
   if (value && typeof value.then === "function") {
     value = await value;
@@ -346,7 +362,12 @@ async function resolveValue(field, resolvers, options, value) {
         return;
       }
 
-      result[subField.alias] = value[subField.name];
+      result[subField.alias] = await resolveValue(
+        subField,
+        EMPTY_OBJECT,
+        options,
+        value[subField.name]
+      );
     })
   );
   return result;
@@ -360,7 +381,15 @@ function buildArgs(field, options) {
   return args;
 }
 
+async function updateVariable(variables, name, value) {
+  const asyncValue = await value;
+  variables[name] = asyncValue;
+}
+
 async function resolveField(field, resolvers, options, parent) {
+  // if (field.out) {
+  //   return await updateVariable(options.variables, field.out, parent);
+  // }
   let resolver = resolvers[field.name];
   if (!resolver) return parent;
   const args = buildArgs(field, options);
@@ -370,7 +399,7 @@ async function resolveField(field, resolvers, options, parent) {
   if (typeof resolver === "function") {
     return resolveValue(
       field,
-      {},
+      EMPTY_OBJECT,
       options,
       options.call(resolver, parent, args, field)
     );
@@ -379,7 +408,6 @@ async function resolveField(field, resolvers, options, parent) {
   if (Array.isArray(resolver)) {
     return options.resolveGroup(resolver, field, parent, args);
   }
-
   return resolveValue(field, resolver, options, parent);
 }
 

@@ -1,0 +1,11 @@
+{
+  "name": "shared",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "build": "rollup --config rollup.config.js"
+  },
+  "dependencies": {
+    "dayjs": "^1.10.6"
+  }
+}
