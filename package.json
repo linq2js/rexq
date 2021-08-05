@@ -4,6 +4,11 @@
   "description": "",
   "private": true,
   "scripts": {
+    "shared:build": "lerna exec --parallel --scope shared -- BABEL_ENV=production babel --copy-files  --no-copy-ignored --out-dir dist --config-file ../../babel.config.js src",
+    "server:start": "lerna exec --scope server -- nodemon --exec babel-node ./src/index.js --config-file ../../babel.config.js",
+    "server:deploy": "BABEL_NO_SOURCE_MAPS=1 npm run build",
+    "build": "npm run shared:build && lerna exec --parallel --ignore shared -- BABEL_ENV=production babel --copy-files  --no-copy-ignored --out-dir dist --config-file ../../babel.config.js src",
+    "publish": "lerna publish && git push",
     "test": "jest --detectOpenHandles",
     "test:watch": "jest --watch",
     "bootstrap": "lerna bootstrap",
@@ -11,15 +16,12 @@
     "diff": "lerna diff",
     "changed": "lerna changed",
     "prepublish": "npm run build",
-    "publish": "lerna publish && git push",
     "publish:initial": "git push -u origin master && lerna publish --from-git",
     "commit": "git-cz",
     "commit:retry": "git-cz --retry",
     "lint": "eslint .",
     "postinstall": "npm run bootstrap",
-    "build-shared": "lerna run build --scope shared",
-    "prebuild": "lerna exec --parallel -- rimraf dist && npm run build-shared",
-    "build": "lerna exec --parallel -- BABEL_ENV=production babel --copy-files --out-dir dist --config-file ../../babel.config.js src",
+    "prebuild": "lerna exec --parallel -- rimraf dist",
     "pre-commit:error": "echo-cli 'Could not commit. Fix the problem, then run: npm run commit:retry' && exit 1"
   },
   "config": {
@@ -68,8 +70,7 @@
     "rimraf": "^3.0.2",
     "nodemon": "^2.0.12",
     "babel-plugin-module-resolver": "^4.1.0",
-    "rollup": "^2.55.1",
-    "recursive-copy": "^2.0.13"
+    "eslint-plugin-babel": "^5.3.1"
   },
   "eslintConfig": {
     "extends": [

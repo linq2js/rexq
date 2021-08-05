@@ -16,7 +16,7 @@ test("simple resolver", async () => {
 
 test("shorthand argument", async () => {
   const { resolve } = rexq({ search: (_, { term }) => term });
-  const result = await resolve(`search($term)`, { term: 1 });
+  const result = await resolve("search($term)", { term: 1 });
   expect(result.data.search).toBe(1);
 });
 
@@ -36,7 +36,7 @@ test("should not call resolver if it does not present in query", async () => {
     SearchResult: { count: () => 2 },
     search: ["SearchResult", () => ({ count: 1 })],
   });
-  const result = await resolve(`search`);
+  const result = await resolve("search");
   expect(result.data.search.count).toBeUndefined();
 });
 
@@ -45,7 +45,7 @@ test("the result resolver can overwrite property value of result", async () => {
     SearchResult: { count: () => 2 },
     search: ["SearchResult", () => ({ count: 1 })],
   });
-  const result = await resolve(`search(count)`);
+  const result = await resolve("search(count)");
   expect(result.data.search.count).toBe(2);
 });
 
@@ -61,13 +61,13 @@ test("calling resolver order", async () => {
         orders.push(2);
         return next();
       },
-      () => (next) => {
+      () => () => {
         orders.push(3);
         return 1;
       },
     ],
   });
-  const result = await resolve(`test`);
+  const result = await resolve("test");
   expect(result.data.test).toBe(1);
   expect(orders).toEqual([1, 2, 3]);
 });
@@ -119,7 +119,7 @@ test("multiple resolver errors supported", async () => {
       throw new Error("");
     },
   });
-  const result = await resolve(`r1,r2,r3`);
+  const result = await resolve("r1,r2,r3");
   expect(result).toMatchObject({
     data: {
       r1: 1,
@@ -158,7 +158,7 @@ test("modularizing supported", async () => {
   const module1 = { r1: () => 1 };
   const module2 = { require: module1, r2: () => 2 };
   const { resolve } = rexq([module2]);
-  const result = await resolve(`r1,r2`);
+  const result = await resolve("r1,r2");
   expect(result.data).toEqual({ r1: 1, r2: 2 });
 });
 
@@ -174,7 +174,7 @@ test("resolver tree", async () => {
   };
   const { resolverTree, resolve } = rexq([companyModule, triggersModule]);
   const result = await resolve(
-    `company($code:code, code, triggers($year: year))`,
+    "company($code:code, code, triggers($year: year))",
     {
       code: "ZIM",
       year: 2019,
@@ -202,7 +202,7 @@ test("resolving non-object", async () => {
     },
   });
 
-  const result = await resolve(`todoList(id,title)`);
+  const result = await resolve("todoList(id,title)");
   expect(result.data.todoList).toEqual([
     { id: 1, title: "title1" },
     { id: 2, title: "title2" },
@@ -256,10 +256,7 @@ test("fallback for server", async () => {
 
 test("fallback for client", async () => {
   const resolver = (_, args) => args.value;
-  const { resolve, parse } = rexq(
-    { r1: resolver, r2: resolver },
-    { fallback: true }
-  );
+  const { resolve } = rexq({ r1: resolver, r2: resolver }, { fallback: true });
   const result = await resolve(
     "r1($value:r1),r2($value:r2),r3($value:r3),r4($value:r4)",
     { r1: 1, r2: 2, r3: 3, r4: 4 }
@@ -300,7 +297,7 @@ test("links", async () => {
     }
   );
   const result = await gateway.resolve(
-    `r1($value:r1), r2($value:r2), r3($value:r3), r4($value:r4)`,
+    "r1($value:r1), r2($value:r2), r3($value:r3), r4($value:r4)",
     { r1: 1, r2: 2, r3: 3, r4: 4 }
   );
 
@@ -332,7 +329,7 @@ test("links with placeholder", async () => {
     }
   );
   const result = await resolve(
-    `parent( child1( $value:child1 ), child2( $value: child2) )`,
+    "parent( child1( $value:child1 ), child2( $value: child2) )",
     { child1: "abc", child2: "def" }
   );
   expect(result.data).toEqual({
@@ -351,7 +348,7 @@ test("export selector value to variable", async () => {
       return a + b;
     },
   });
-  const result = await resolve(`a:$a, b:$b, sum($a, $b)`, {
+  const result = await resolve("a:$a, b:$b, sum($a, $b)", {
     $execute: "serial",
   });
   expect(result.data).toEqual({
@@ -365,7 +362,7 @@ test("resolve array", async () => {
       return testData;
     },
   });
-  const result = await resolve(
+  await resolve(
     `triggers(
       $year,
       earnings,

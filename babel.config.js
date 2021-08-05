@@ -1,8 +1,15 @@
-const copy = require("recursive-copy");
 const fs = require("fs");
 const path = require("path");
 
 module.exports = {
+  ignore:
+    process.env.BABEL_ENV === "production"
+      ? [
+          "**/__tests__", // ignore the whole test directory
+          "**/*.test.js", // ignore test files only
+        ]
+      : [],
+  sourceMaps: process.env.BABEL_NO_SOURCE_MAPS ? false : "inline",
   presets: [
     [
       "@babel/preset-env",
@@ -19,7 +26,7 @@ module.exports = {
       {
         cwd: "babelrc",
         alias: {
-          "^shared/(.+)": "./packages/shared/dist/rollup/\\1.js",
+          "^shared": "./packages/shared/dist/index.js",
         },
       },
     ],
@@ -32,26 +39,27 @@ module.exports = {
           "module-resolver",
           {
             cwd: "packagejson",
-            resolvePath(sourcePath, currentFile, opts) {
-              const [, sharedPart] = /^shared\/(.+)/.exec(sourcePath) || [];
-              if (sharedPart) {
+            resolvePath(sourcePath, currentFile) {
+              if (sourcePath === "shared") {
                 const parts = currentFile.split("/");
                 while (parts.length) {
                   const last = parts.pop();
                   if (last === "src") break;
                 }
-                const packageDir = parts.join("/");
+                const currentPackageDir = parts.join("/");
                 // up to packages
                 parts.pop();
-                const sourceSharedFile =
-                  parts.join("/") + `/shared/dist/rollup/${sharedPart}.js`;
-                const targetSharedFile = `${packageDir}/dist/shared/${sharedPart}.js`;
-                const importSharedFile = `${packageDir}/src/shared/${sharedPart}.js`;
+
+                const allPackagesDir = parts.join("/");
+                const sourceSharedDir = `${allPackagesDir}/shared/dist`;
+                const targetSharedDir = `${currentPackageDir}/dist/shared`;
+                const importSharedFile = `${currentPackageDir}/src/shared/index.js`;
+
                 if (
-                  !fs.existsSync(targetSharedFile) &&
-                  fs.existsSync(sourceSharedFile)
+                  !fs.existsSync(targetSharedDir) &&
+                  fs.existsSync(sourceSharedDir)
                 ) {
-                  copy(sourceSharedFile, targetSharedFile, { overwrite: true });
+                  fs.symlinkSync(sourceSharedDir, targetSharedDir);
                 }
 
                 return getRelativePath(currentFile, importSharedFile);

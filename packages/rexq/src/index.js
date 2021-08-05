@@ -97,6 +97,7 @@ export function parseQuery(query, cache, cacheSize) {
   }
 
   try {
+    // eslint-disable-next-line no-constant-condition
     while (true) {
       let found = false;
       query = query.replace(/\(([^()]*)\)/g, (_, group) => {
@@ -125,7 +126,7 @@ export function parseQuery(query, cache, cacheSize) {
 function getErrorInfo(path, error) {
   return {
     path,
-    message: typeof error === "string" ? fieldError : error.message,
+    message: typeof error === "string" ? error : error.message,
     stack: error.stack,
   };
 }
@@ -269,7 +270,6 @@ async function resolveQuery(
     allResolvingPromises.push(
       handleFallabck(fallback, fallbackFields, variables, result)
     );
-
     await Promise.all(allResolvingPromises);
   }
 
@@ -545,7 +545,7 @@ export default function rexq(
       return buildQuery(fields, variables);
     },
     get resolverTree() {
-      if (resolverTree) return;
+      if (resolverTree) return resolverTree;
 
       function buildTree(parent, nodes) {
         Object.entries(nodes).forEach(([key, value]) => {

@@ -4,6 +4,7 @@ module.exports = {
     "shared-node-browser": true,
     commonjs: true,
     jest: true,
+    node: true,
   },
   extends: "eslint:recommended",
   parserOptions: {
@@ -12,10 +13,8 @@ module.exports = {
   },
   plugins: ["babel"],
   rules: {
-    indent: ["error", 2],
     "linebreak-style": ["error", "unix"],
     quotes: ["error", "double", { avoidEscape: true }],
     semi: ["error", "always"],
-    "arrow-parens": ["error", "as-needed"],
   },
 };
