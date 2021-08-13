@@ -4,10 +4,10 @@
   "description": "",
   "private": true,
   "scripts": {
-    "shared:build": "lerna exec --parallel --scope shared -- BABEL_ENV=production babel --copy-files  --no-copy-ignored --out-dir dist --config-file ../../babel.config.js src",
+    "shared:build": "lerna exec --parallel --scope shared --ignore react-demo -- BABEL_ENV=production babel --copy-files  --no-copy-ignored --out-dir dist --config-file ../../babel.config.js src",
     "server:start": "lerna exec --scope server -- nodemon --exec babel-node ./src/index.js --config-file ../../babel.config.js",
     "server:deploy": "BABEL_NO_SOURCE_MAPS=1 npm run build",
-    "build": "npm run shared:build && lerna exec --parallel --ignore shared -- BABEL_ENV=production babel --copy-files  --no-copy-ignored --out-dir dist --config-file ../../babel.config.js src",
+    "build": "npm run shared:build && lerna exec --parallel --ignore shared --ignore react-demo -- BABEL_ENV=production babel --copy-files  --no-copy-ignored --out-dir dist --config-file ../../babel.config.js src",
     "publish": "lerna publish && git push",
     "test": "jest --detectOpenHandles",
     "test:watch": "jest --watch",

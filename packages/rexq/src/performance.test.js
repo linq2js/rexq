@@ -1,5 +1,5 @@
 import gql from "graphql-tag";
-import { parseQuery } from "./index";
+import { parseQuery } from "./util";
 
 const testCount = 10000;
 

@@ -19,7 +19,7 @@ export interface ParseResult {
   error: Error;
 }
 
-export type Context<TExtra> = {
+export type Context<TExtra = {}> = {
   root: any;
   variables: Variables;
   resolvers: ResolverMap;
@@ -105,8 +105,8 @@ export interface ResolverMap {
 export type Module = { require?: Module | Module[] } & ResolverMap;
 
 export interface DefaultExport extends Function {
-  (modules: Module[], options: Options): Rexq;
-  (resolvers: ResolverMap, options: Options): Rexq;
+  (modules: Module[], options?: Options): Rexq;
+  (resolvers: ResolverMap, options?: Options): Rexq;
 }
 
 declare const rexq: DefaultExport;
