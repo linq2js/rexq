@@ -35,7 +35,7 @@ export type Variables = {
   $execute?: "parallel" | "serial";
   $single?: boolean;
   $root?: any;
-} & {};
+} & { [key: string]: any };
 
 export interface ResolverTree {
   [key: string]: "unknown" | "resolver" | ResolverTree;
