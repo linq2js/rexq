@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.0.16](https://github.com/linq2js/rexq/compare/server@0.0.15...server@0.0.16) (2021-08-13)
+
+
+### Bug Fixes
+
+* eslint does not work ([08e4b68](https://github.com/linq2js/rexq/commit/08e4b68319629036dcdff68bb808e0f840c07f80))
+
+
+
+
+
 ## [0.0.15](https://github.com/linq2js/rexq/compare/server@0.0.14...server@0.0.15) (2021-08-04)
 
 
